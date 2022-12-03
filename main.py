@@ -25,15 +25,14 @@ blockchain=bl.Blockchain()
 def mine():
     # Мы запускаем алгоритм подтверждения работы, чтобы получить следующее подтверждение…
     last_block = blockchain.last_block
-    last_proof = last_block['proof']
-    proof = blockchain.proof_of_work(last_proof)
+    proof = blockchain.proof_of_work(last_block)
 
     # Мы должны получить вознаграждение за найденное подтверждение
     # Отправитель “0” означает, что узел заработал крипто-монету
     blockchain.new_transaction(
-    sender = "0",
-    recipient = node_identifier,
-    amount = 1,
+        sender = "0",
+        recipient = node_identifier,
+        amount = 1,
     )
 
     # Создаем новый блок, путем внесения его в цепь
@@ -41,11 +40,11 @@ def mine():
     block = blockchain.new_block(proof, previous_hash)
 
     response = {
-    'message': "New Block Forged",
-    'index': block['index'],
-    'transactions': block['transactions'],
-    'proof': block['proof'],
-    'previous_hash': block['previous_hash'],
+        'message': "New Block Forged",
+        'index': block['index'],
+        'transaction': block['transaction'],
+        'proof': block['proof'],
+        'previous_hash': block['previous_hash'],
     }
     return jsonify(response), 200
 
@@ -59,6 +58,7 @@ def new_transaction():
     if not all(k in values for k in required):
         return 'Missing values',400
     index=blockchain.new_transaction(values['sender'], values['recipient'], values['amount'])
+
     response={'message': f'Transaction will be added to Block {index}'}
     return jsonify(response),201
 
@@ -72,6 +72,31 @@ def full_chain():
     }
     return jsonify(response), 200
 
-#Запускает сервер на порт: 5000.
-if __name__=='__main__':
-    app.run(host='0.0.0.0',port=5000)
+
+@app.route('/nodes/resolve', methods=['GET'])
+def consensus():
+    replaced = blockchain.resolve_conflicts()
+
+    if replaced:
+        response = {
+            'message': 'Our chain was replaced',
+            'new_chain': blockchain.chain
+        }
+    else:
+        response = {
+            'message': 'Our chain is authoritative',
+            'chain': blockchain.chain
+        }
+
+    return jsonify(response), 200
+
+
+if __name__ == '__main__':
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser()
+    parser.add_argument('-p', '--port', default=5000, type=int, help='port to listen on')
+    args = parser.parse_args()
+    port = args.port
+
+    app.run(host='0.0.0.0', port=port)

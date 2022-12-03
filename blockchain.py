@@ -65,7 +65,7 @@ class Blockchain(object):
         last_proof = last_block['proof']
         last_hash = self.hash(last_block)
         proof=0
-        while self.valid_proof(last_proof,proof,last_hash) is False:
+        while self.valid_proof(last_proof,proof) is False:
             proof+=1
         return proof
     @staticmethod
